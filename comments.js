@@ -3,6 +3,7 @@ class CommentSystem {
         this.comments = [];
         this.currentUser = null;
         this.maxComments = 10000; // Aumentado a 10000 comentarios
+        this.refreshInterval = 5000;
         this.loadFromLocalStorage();
         this.setupEventListeners();
         this.userLikes = this.loadUserLikes();
@@ -30,22 +31,17 @@ class CommentSystem {
 
     // Agregar método para actualización automática
     setupAutoRefresh() {
-        // Actualizar cada 30 segundos
-        this.refreshInterval = setInterval(() => {
+        // Actualizar más frecuentemente
+        setInterval(() => {
             this.loadFromLocalStorage();
             this.renderComments();
-        }, 30000);
+        }, this.refreshInterval);
 
-        // Agregar listener para cuando la página pierde el foco
+        // Actualizar cuando la página vuelve a estar visible
         document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                // Pausar la actualización cuando la página no está visible
-                clearInterval(this.refreshInterval);
-            } else {
-                // Reanudar la actualización y actualizar inmediatamente
+            if (!document.hidden) {
                 this.loadFromLocalStorage();
                 this.renderComments();
-                this.setupAutoRefresh();
             }
         });
     }
@@ -172,7 +168,14 @@ class CommentSystem {
 
     renderComments() {
         const commentsContainer = document.getElementById('commentsList');
+        if (!commentsContainer) return;
+
         commentsContainer.innerHTML = '';
+
+        if (this.comments.length === 0) {
+            commentsContainer.innerHTML = '<p class="no-comments">No hay comentarios aún.</p>';
+            return;
+        }
 
         this.comments.forEach(comment => {
             const likeKey = this.currentUser ? `${this.currentUser}-${comment.id}` : null;
@@ -187,24 +190,16 @@ class CommentSystem {
                 </div>
                 <div class="comment-body">${comment.text}</div>
                 <div class="comment-footer">
-                    ${this.currentUser ? `
-                        <button 
-                            onclick="commentSystem.likeComment(${comment.id})"
-                            class="like-btn ${hasLiked ? 'liked' : ''}"
-                            ${hasLiked ? 'disabled' : ''}
-                        >
-                            ${hasLiked ? '❤️' : '👍'} ${comment.likes}
-                        </button>
-                        ${comment.user === this.currentUser ? 
-                            `<button class="delete-btn" onclick="commentSystem.deleteComment(${comment.id})">
-                                🗑️ Borrar
-                            </button>` : 
-                            ''}
-                    ` : `
-                        <button class="like-btn" onclick="alert('Inicia sesión para dar like')">
-                            👍 ${comment.likes}
-                        </button>
-                    `}
+                    <button class="like-btn ${hasLiked ? 'liked' : ''}" 
+                            onclick="${this.currentUser ? `commentSystem.likeComment(${comment.id})` : "alert('Inicia sesión para dar like')"}"
+                            ${hasLiked ? 'disabled' : ''}>
+                        ${hasLiked ? '❤️' : '👍'} ${comment.likes}
+                    </button>
+                    ${this.currentUser && comment.user === this.currentUser ? 
+                        `<button class="delete-btn" onclick="commentSystem.deleteComment(${comment.id})">
+                            🗑️ Borrar
+                        </button>` : 
+                        ''}
                 </div>
             `;
             commentsContainer.appendChild(commentElement);
@@ -311,14 +306,22 @@ class CommentSystem {
     }
 
     updateUI(isLoggedIn) {
+        // Sección de login
         document.getElementById('loginSection').style.display = isLoggedIn ? 'none' : 'block';
+        
+        // Sección de comentarios (formulario)
         document.getElementById('commentSection').style.display = isLoggedIn ? 'block' : 'none';
         
-        // Siempre mostrar la lista de comentarios
-        document.getElementById('commentsList').style.display = 'block';
-        
+        // Actualizar nombre de usuario si está logueado
         if (isLoggedIn) {
             document.getElementById('userDisplay').textContent = `Usuario: ${this.currentUser}`;
+        }
+
+        // Asegurar que la lista de comentarios siempre esté visible
+        const commentsList = document.getElementById('commentsList');
+        if (commentsList) {
+            commentsList.style.display = 'block';
+            commentsList.style.marginTop = '20px';
         }
     }
 }
