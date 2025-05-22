@@ -2,7 +2,7 @@ class GlobalViewCounter {
     constructor() {
         this.storageKey = 'globalPageViews';
         this.sessionKey = 'sessionViewed';
-        this.indexKey = 'indexhtml';
+        this.indexKey = 'indexViewed';
         this.initializeCounter();
     }
 
